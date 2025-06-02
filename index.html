@@ -1,54 +1,153 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Bản đồ vị trí hiện tại miễn phí</title>
+    <title>Bản đồ + Thời tiết có icon</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         #map {
             height: 100vh;
+        }
+
+        .weather-icon {
+            width: 100px;
+            height: 100px;
         }
     </style>
 </head>
 
 <body>
-    <div id="map"></div>
+    <div class="row g-0">
+        <div class="col-md-8">
+            <div id="map"></div>
+        </div>
+        <div class="col-md-4 p-4">
+            <h2>Thông tin vị trí</h2>
+            <p id="location-info">Đang lấy vị trí...</p>
+            <h4 class="mt-4">Thời tiết hiện tại</h4>
+            <div id="weather-info">
+                <p>Đang tải dữ liệu thời tiết...</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Hàm xử lý khi lấy vị trí thành công
+        const locationInfo = document.getElementById("location-info");
+        const weatherInfo = document.getElementById("weather-info");
+
+        const weatherDescriptions = {
+            0: "Trời quang",
+            1: "Chủ yếu trời quang",
+            2: "Có mây nhẹ",
+            3: "Nhiều mây",
+            45: "Sương mù",
+            48: "Sương mù đông đặc",
+            51: "Mưa phùn nhẹ",
+            53: "Mưa phùn vừa",
+            55: "Mưa phùn nặng",
+            61: "Mưa nhẹ",
+            63: "Mưa vừa",
+            65: "Mưa to",
+            80: "Mưa rào nhẹ",
+            81: "Mưa rào vừa",
+            82: "Mưa rào to",
+            95: "Dông",
+            96: "Dông có mưa nhỏ",
+            99: "Dông có mưa to"
+        };
+
+        function getWeatherIcon(code) {
+            // Bạn có thể thay các icon khác nếu thích (đây là từ OpenWeatherMap chỉ để minh họa)
+            const iconMap = {
+                0: "01d",
+                1: "02d",
+                2: "03d",
+                3: "04d",
+                45: "50d",
+                48: "50d",
+                51: "09d",
+                53: "09d",
+                55: "09d",
+                61: "10d",
+                63: "10d",
+                65: "10d",
+                80: "09d",
+                81: "09d",
+                82: "09d",
+                95: "11d",
+                96: "11d",
+                99: "11d"
+            };
+            const iconCode = iconMap[code] || "01d";
+            return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+        }
+
         function success(position) {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             const accuracy = position.coords.accuracy;
 
-            console.log("Vị trí:", lat, lng);
-            console.log("Độ chính xác:", accuracy + " mét");
+            locationInfo.innerHTML = `Vĩ độ: ${lat.toFixed(5)}<br>Kinh độ: ${lng.toFixed(5)}<br>Độ chính xác: ${Math.round(accuracy)} mét`;
 
-            // Tạo bản đồ
             const map = L.map("map").setView([lat, lng], 15);
-
-            // Thêm lớp bản đồ từ OpenStreetMap
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+                attribution: '&copy; OpenStreetMap contributors',
             }).addTo(map);
 
-            // Marker vị trí hiện tại
-            L.marker([lat, lng]).addTo(map)
-                .bindPopup("Bạn đang ở đây!<br>Độ chính xác: " + Math.round(accuracy) + " mét")
-                .openPopup();
+            const marker = L.marker([lat, lng]).addTo(map);
+
+            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,rain,weather_code`)
+                .then(response => response.json())
+                .then(data => {
+                    const temp = data.current.temperature_2m;
+                    const code = data.current.weather_code;
+                    const rain = data.current.rain;
+                    const iconUrl = getWeatherIcon(code);
+                    const desc = weatherDescriptions[code] || "Không rõ";
+
+                    const popupContent = `
+                        Bạn đang ở đây!<br>
+                        🌡 ${temp}°C - ${desc}<br>
+                        ${rain > 0 ? "🌧 Có mưa" : "🌤 Không mưa"}
+                    `;
+                    marker.bindPopup(popupContent).openPopup();
+
+                    // Hiển thị bên panel phải
+                    weatherInfo.innerHTML = `
+                        <img src="${iconUrl}" alt="icon thời tiết" class="weather-icon"><br>
+                        Nhiệt độ: <strong>${temp}°C</strong><br>
+                        ${desc}<br>
+                        ${rain > 0 ? "Có mưa" : "Không mưa"}
+                    `;
+                })
+                .catch(err => {
+                    weatherInfo.innerHTML = "<p class='text-danger'>Không lấy được thời tiết.</p>";
+                    console.error("Lỗi lấy thời tiết:", err);
+                });
+
+            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+                .then(res => res.json())
+                .then(data => {
+                    const address = data.display_name;
+                    locationInfo.innerHTML += `<br>${address}`;
+                })
+                .catch(err => {
+                    console.error("Lỗi reverse geocoding:", err);
+                    locationInfo.innerHTML += `<br>Không xác định được tỉnh/thành.`;
+                });
         }
 
-        // Hàm xử lý khi xảy ra lỗi
         function error(err) {
-            console.warn("Lỗi khi lấy vị trí:", err.message);
-            alert("Không thể lấy vị trí của bạn. Hãy kiểm tra quyền định vị và kết nối mạng.");
+            locationInfo.textContent = "❌ Không thể lấy vị trí.";
+            weatherInfo.innerHTML = "<p class='text-danger'>Không thể lấy thời tiết vì lỗi định vị.</p>";
+            console.warn("Lỗi vị trí:", err.message);
         }
 
-        // Kiểm tra hỗ trợ và gọi định vị
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(success, error, {
                 enableHighAccuracy: true,
@@ -60,4 +159,5 @@
         }
     </script>
 </body>
+
 </html>
