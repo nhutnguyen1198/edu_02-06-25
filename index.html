@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Bản đồ + Thời tiết có icon</title>
+    <title>Bản đồ + Thời tiết</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -13,8 +13,8 @@
         }
 
         .weather-icon {
-            width: 100px;
-            height: 100px;
+            width: 170px;
+            height: 170px;
         }
     </style>
 </head>
@@ -112,8 +112,7 @@
 
                     const popupContent = `
                         Bạn đang ở đây!<br>
-                        🌡 ${temp}°C - ${desc}<br>
-                        ${rain > 0 ? "🌧 Có mưa" : "🌤 Không mưa"}
+                        🌡 ${temp}°C - ${desc}
                     `;
                     marker.bindPopup(popupContent).openPopup();
 
@@ -121,9 +120,7 @@
                     weatherInfo.innerHTML = `
                         <img src="${iconUrl}" alt="icon thời tiết" class="weather-icon"><br>
                         Nhiệt độ: <strong>${temp}°C</strong><br>
-                        ${desc}<br>
-                        ${rain > 0 ? "Có mưa" : "Không mưa"}
-                    `;
+                        ${desc}<br>`;
                 })
                 .catch(err => {
                     weatherInfo.innerHTML = "<p class='text-danger'>Không lấy được thời tiết.</p>";
@@ -143,7 +140,7 @@
         }
 
         function error(err) {
-            locationInfo.textContent = "❌ Không thể lấy vị trí.";
+            locationInfo.textContent = "Không thể lấy vị trí.";
             weatherInfo.innerHTML = "<p class='text-danger'>Không thể lấy thời tiết vì lỗi định vị.</p>";
             console.warn("Lỗi vị trí:", err.message);
         }
