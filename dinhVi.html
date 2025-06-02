@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bản đồ vị trí hiện tại miễn phí</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Hàm xử lý khi lấy vị trí thành công
+        function success(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            console.log("Vị trí:", lat, lng);
+            console.log("Độ chính xác:", accuracy + " mét");
+
+            // Tạo bản đồ
+            const map = L.map("map").setView([lat, lng], 15);
+
+            // Thêm lớp bản đồ từ OpenStreetMap
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+            }).addTo(map);
+
+            // Marker vị trí hiện tại
+            L.marker([lat, lng]).addTo(map)
+                .bindPopup("Bạn đang ở đây!<br>Độ chính xác: " + Math.round(accuracy) + " mét")
+                .openPopup();
+        }
+
+        // Hàm xử lý khi xảy ra lỗi
+        function error(err) {
+            console.warn("Lỗi khi lấy vị trí:", err.message);
+            alert("Không thể lấy vị trí của bạn. Hãy kiểm tra quyền định vị và kết nối mạng.");
+        }
+
+        // Kiểm tra hỗ trợ và gọi định vị
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(success, error, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        } else {
+            alert("Trình duyệt không hỗ trợ định vị.");
+        }
+    </script>
+</body>
+</html>
